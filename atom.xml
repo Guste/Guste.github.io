@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>金礼秋的博客</title>
+  
+  
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="http://yoursite.com/"/>
+  <updated>2018-04-24T08:38:14.064Z</updated>
+  <id>http://yoursite.com/</id>
+  
+  <author>
+    <name>Guste</name>
+    
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>jquery jsonp设置jsonpCallback遇到的坑</title>
+    <link href="http://yoursite.com/2018/04/24/jquery-jsonp%E8%AE%BE%E7%BD%AEjsonpCallback%E9%81%87%E5%88%B0%E7%9A%84%E5%9D%91/"/>
+    <id>http://yoursite.com/2018/04/24/jquery-jsonp设置jsonpCallback遇到的坑/</id>
+    <published>2018-04-23T16:15:29.000Z</published>
+    <updated>2018-04-24T08:38:14.064Z</updated>
+    
+    <content type="html"><![CDATA[<p>事情起因源自维护一份老的代码，其中跨域请求通过jsonp来获取数据，然后通过jquery的ajax方法来使用jsonp.</p><h4 id="问题："><a href="#问题：" class="headerlink" title="问题："></a>问题：</h4><p>代码中需要重复调用同一接口，但是接口在数据成功获取到的情况下，并未进入<code>success</code>回调，而是进入<code>error</code>，查看错误信息显示的是<code>abort</code>。</p><p>通过反复调试，最后发现<code>$.ajax</code>方法传入的<code>option</code>中有个参数叫<code>jsonpCallback</code>，其作用是指定<code>callback</code>回调时函数体的名称。这里写的是一个固定的值。试着修改通过给设定的<code>jsonpCallback</code>的值加入时间戳或者直接删除<code>jsonpCallback</code>，重复的请求jsonp就可以进入<code>success</code>了。虽然问题已经解决了，但其内在的逻辑仍需要探清。</p><h4 id="分析："><a href="#分析：" class="headerlink" title="分析："></a>分析：</h4><p>通过表象来看只是每次请求时<code>jsonpCallback</code>名称是否相同导致是否<code>success</code>，那么是什么原因呢？<code>jsonp</code>众所周知就是通过一个<code>script</code>标签来跨域请求目标服务器的对应接口数据，然后执行回调函数获得所需的data.所以按理说相同的回调函数名会影响得到其包裹的data吗？显然不会。那么可能就和<code>jquery</code>有关了。</p><h4 id="jquery源码（好像贴的是zepto的，无所谓了。）"><a href="#jquery源码（好像贴的是zepto的，无所谓了。）" class="headerlink" title="jquery源码（好像贴的是zepto的，无所谓了。）"></a>jquery源码（好像贴的是zepto的，无所谓了。）</h4><p>我们找到与jsonp相关的部分</p><pre><code>//options就是我们通过$.ajax传入的参数$.ajaxJSONP = function(options, deferred){    if (!(&apos;type&apos; in options)) return $.ajax(options)    //我们传入的jsonpCallback赋值给了_callbackName，若没传，则callbackName就是一个随机动态的字符串    var _callbackName = options.jsonpCallback,      callbackName = ($.isFunction(_callbackName) ?        _callbackName() : _callbackName) || (&apos;Zepto&apos; + (jsonpID++)),        //生成一个script标签，用来请求数据      script = document.createElement(&apos;script&apos;),      originalCallback = window[callbackName],      responseData,      //中断请求的方法      abort = function(errorType) {        $(script).triggerHandler(&apos;error&apos;, errorType || &apos;abort&apos;)      },      xhr = { abort: abort }, abortTimeout    if (deferred) deferred.promise(xhr)    //监听script标签的load和error事件    $(script).on(&apos;load error&apos;, function(e, errorType){      clearTimeout(abortTimeout)      //移除script标签      $(script).off().remove()        //若没有返回数据或者请求状态错误则抛出移除进入error,否则进入success      if (e.type == &apos;error&apos; || !responseData) {        ajaxError(null, errorType || &apos;error&apos;, xhr, options, deferred)      } else {        ajaxSuccess(responseData[0], xhr, options, deferred)      }      //这里获取外层的originalCallback,也就是callbackName      window[callbackName] = originalCallback      if (responseData &amp;&amp; $.isFunction(originalCallback))        originalCallback(responseData[0])      //清空返回的responseData      originalCallback = responseData = undefined    })    if (ajaxBeforeSend(xhr, options) === false) {      abort(&apos;abort&apos;)      return xhr    }    //以callbackName为变量名声明函数，绑到window上，其传参就是responseData    window[callbackName] = function(){      responseData = arguments    }    //script标签的src即我们需要请求的接口的地址，将标签插入head    script.src = options.url.replace(/\?(.+)=\?/, &apos;?$1=&apos; + callbackName)    document.head.appendChild(script)    //若超时则抛出异常。    if (options.timeout &gt; 0) abortTimeout = setTimeout(function(){      abort(&apos;timeout&apos;)    }, options.timeout)    return xhr  }</code></pre><p>这里我们模拟一下使用<code>jquery</code>发起一个jsonp的请求的过程，就可以得出结论了。</p><ol><li>调用$.ajax方法</li><li>生成script标签</li><li>script标签上监听load和error事件</li><li>window上声明callbackName相同变量名的函数</li><li>script标签插入页面</li><li>回调执行拿到数据</li><li>下一个$.ajax方法执行</li></ol><p>看上去是这样没错，但实际却有很大区别。当短时间内有很多相同callbackName的jsonp请求时，事实并不能如我们意。js中有异步的概念，并不是从头到尾按顺序依次生效的。</p><p>其中，第三步的事件监听是一个异步的操作，js中异步的任务会由对应的异步模块单独处理。处理完后其回调方法会被丢到一个任务队列当中，待主线程的所有同步任务执行完成后才会从队列中取出最先进入的任务执行作。就像<code>setTimeout</code>就是很典型的一个异步任务。值得一提的是vue中有个<code>nextTick</code>方法就利用了异步的特性，使得其可以在数据更改后，双向数据绑定修改dom，在dom重新渲染(这里不做讨论双向数据绑定具体实现)完成之后再执行<code>nextTick</code>里的回调。因为<code>nextTick</code>方法的实现之一就是<code>timeout</code>，所以会在任务队列的末尾插入回调任务.此时可以确保回调执行时页面dom早已更新完毕。</p><p>言归正传，那么我们分析下整个过程。</p><ol><li>调用$.ajax方法</li><li>生成script标签</li><li>script标签上监听Load和error事件，对应的事件执行将扔到任务队列当中</li><li>script标签插入到页面当中，其请求过程是异步的，会被丢到任务队列，解析和执行过程是同步的，会产生阻塞。这里需要注意下，很多人弄不清其中的关系。网页加载过程中script标签是阻塞的，但阻塞的是后续的dom树的构建，其网络请求仍是异步的。</li><li>之前绑到window的回调执行，数据放到声明的responseData当中</li><li>下一个$.ajax方法调用，对应jquery里面的jsonp的方法重新初始化，且由于两次请求的callbackName名称相同，使得window上的该变量名的方法也重新赋值。上一个请求得到的responseData也成了undefined.</li><li>生成script标签发起异步的网络请求进入任务队列</li><li>此时主线程的同步任务已经执行完了。开始执行任务队列里上一个script标签onload触发的callback,</li><li>由于responseData已经成了undefinde，所以抛出异常，执行进入error当中。</li></ol><h4 id="最后我想说。。。还是早点把jquery扔了吧。。。"><a href="#最后我想说。。。还是早点把jquery扔了吧。。。" class="headerlink" title="最后我想说。。。还是早点把jquery扔了吧。。。"></a>最后我想说。。。还是早点把jquery扔了吧。。。</h4>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;事情起因源自维护一份老的代码，其中跨域请求通过jsonp来获取数据，然后通过jquery的ajax方法来使用jsonp.&lt;/p&gt;
+&lt;h4 id=&quot;问题：&quot;&gt;&lt;a href=&quot;#问题：&quot; class=&quot;headerlink&quot; title=&quot;问题：&quot;&gt;&lt;/a&gt;问题：&lt;/h4&gt;&lt;
+      
+    
+    </summary>
+    
+    
+      <category term="jquery" scheme="http://yoursite.com/tags/jquery/"/>
+    
+      <category term="任务队列" scheme="http://yoursite.com/tags/%E4%BB%BB%E5%8A%A1%E9%98%9F%E5%88%97/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>audio标签与206状态码</title>
+    <link href="http://yoursite.com/2017/10/25/audio-and-206/"/>
+    <id>http://yoursite.com/2017/10/25/audio-and-206/</id>
+    <published>2017-10-25T15:18:36.000Z</published>
+    <updated>2018-04-24T08:38:14.054Z</updated>
+    
+    <content type="html"><![CDATA[<h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>在此之前从没能把这俩家伙联系到一起过,因为本身处理媒体资源的经历也比较少。事情的开头是这样的,下午妹纸突然发微信给我,说是碰到个很奇怪的问题。audio标签引用mp3资源,在页面初次加载时拖动进度条,鼠标释放后自己又跑回了0:00的初始位置。音频资源缓冲完毕后再刷新就可以随意拖动了。</p><h3 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h3><p>从妹纸那拿到音频资源的地址,然后写了个demo试验:</p><pre><code>&lt;audio src=&quot;http://101.132.40.17:8080/tccrm2_saas_ws2/monitor/Miaow-07-Bubble.mp3&quot; controls=&quot;controls&quot;&gt;&lt;/audio&gt;</code></pre><p>特意翻了下w3cschool,没有问题,但初次加载果然拖动后立马回到初始位置,等待资源缓冲完毕后可以随意拖动。清除缓存后再次打开又不行。<br>再次打开w3cschool,翻看了其事件和相关api,仍旧没有头绪。使用原生js的<code>currentTime</code>手动修改当前位置,结果仍旧是直接回到0:00。头大。</p><h3 id="搜索引擎"><a href="#搜索引擎" class="headerlink" title="搜索引擎"></a>搜索引擎</h3><p>网上搜索: audio标签拖拽进度条 一系列相关关键词,但是没找到任何有关系的结果。难道大家都没遇到过这个问题吗?于是我去stack overflow提问,英语虽渣但勉强把问题描述清楚了（外国朋友一定会觉得语法很奇怪）。<br>过了一会儿有人回答了,因为我把上面的代码也复制进去了,对方回答说:首先你的提问和你的代码没有关系,其次已经有类似的问题我已经做出解答了。(汗,我特意先搜过有没有相关问题了,但奈何英语差加上可能关键词不对),于是跳转到对方给的链接,问题是为什么我的audio标签进度条不工作,下面只有一个回答。不过并没有讲解决方案而是提到了206状态码。<br>206?<br>我特意去搜了一下。<br>表示该响应是表示客户端通过发送范围请求头Range抓取到了资源的部分数据,通常是用来:</p><ul><li>学习http头和状态.</li><li>解决网路问题.</li><li>解决大文件下载问题.</li><li>解决CDN和原始HTTP服务器问题.</li><li>使用工具例如lftp,wget,telnet测试断电续传.</li><li>测试将一个大文件分割成多个部分同时下载.</li></ul><h5 id="可是和我的audio标签的问题又有什么关联呢"><a href="#可是和我的audio标签的问题又有什么关联呢" class="headerlink" title="可是和我的audio标签的问题又有什么关联呢?"></a>可是和我的audio标签的问题又有什么关联呢?</h5><p>我仔细观察了下我的demo的网络请求,发现了点端倪。初次加载的时候响应的状态码是200,这时候控件是无法有效拖动的,即便缓冲成功。但是缓冲成功后再刷新页面,响应的状态码就成了206.貌似看到些曙光了,于是继续研究206状态。<br>原来206请求是个范围请求,<code>audio</code>标签的src请求媒体资源时请求头会带上<code>Range: bytes=0-</code>,意思就是告诉服务器我要发起个范围请求,并指定想要的字节范围。服务器收到后响应,如果支持的话那么响应头会带上<code>Content-Length</code>和<code>Accept-Ranges</code>,这时候audio标签的进度条就可以随意拖动进度。如果服务器不支持,那么也不会报错,仍旧可以成功的返回200状态,但是音频资源只能从头不间断的播放到尾。</p><h3 id="问题总结"><a href="#问题总结" class="headerlink" title="问题总结"></a>问题总结</h3><p>现在事情的脉络很清楚了,初次加载资源时,客户端向服务端发起了范围请求,服务端不支持（妥妥的后端的锅）,返回了个200状态码,音频照常播放,但是无法拖动进度。音频缓冲完毕后刷新页面,资源从缓存中读取,所以范围请求成功,返回206.进度条可以随意拖动。</p><h3 id="感想"><a href="#感想" class="headerlink" title="感想"></a>感想</h3><p>最大的收获就是让我对从没关注过的206范围请求,及audio相关的细节有了一定了解。不过这个坑乍一看实在太像前端的锅了,但是又和前端完全没关系,是后端没处理好。但是也告诉了我一件事,身为一个前端应该对http请求,以及各个状态码都要有一定了解,而不是简单的1xx,2xx,3xx,4xx开头代表什么。这样下次碰到类似的问题就可以很快定位到原因了。</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;h3 id=&quot;前言&quot;&gt;&lt;a href=&quot;#前言&quot; class=&quot;headerlink&quot; title=&quot;前言&quot;&gt;&lt;/a&gt;前言&lt;/h3&gt;&lt;p&gt;在此之前从没能把这俩家伙联系到一起过,因为本身处理媒体资源的经历也比较少。事情的开头是这样的,下午妹纸突然发微信给我,说是碰到个很奇怪的问题
+      
+    
+    </summary>
+    
+    
+      <category term="html5" scheme="http://yoursite.com/tags/html5/"/>
+    
+      <category term="http" scheme="http://yoursite.com/tags/http/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>hexo配置</title>
+    <link href="http://yoursite.com/2017/10/25/hexo-config/"/>
+    <id>http://yoursite.com/2017/10/25/hexo-config/</id>
+    <published>2017-10-25T13:47:57.000Z</published>
+    <updated>2018-04-24T08:38:14.056Z</updated>
+    
+    <content type="html"><![CDATA[<h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><h5 id="为什么选择hexo"><a href="#为什么选择hexo" class="headerlink" title="为什么选择hexo?"></a>为什么选择hexo?</h5><p>以前也注册过博客园和csdn,不过没有经常逛与写的动力。后来学node的第一个demo就是用express搭一个博客。不过还是稍嫌烦了些。而hexo作为一个静态的博客,部署在github上,一切都简单很多。本来网上的教程已经很多了,在公司电脑上windows环境安装也很顺利。但是到家后用mac把项目clone下来运行碰到了一些坑,解决之后才有了自己记录下这个过程的想法。</p><h3 id="配置环境"><a href="#配置环境" class="headerlink" title="配置环境"></a>配置环境</h3><h5 id="Node"><a href="#Node" class="headerlink" title="Node"></a>Node</h5><p>Node的话可以去<a href="https://nodejs.org/en/" target="_blank" rel="external">官网</a>下载安装</p><h5 id="git"><a href="#git" class="headerlink" title="git"></a>git</h5><p>关于git的安装使用廖雪峰老师的<a href="https://www.liaoxuefeng.com/wiki/0013739516305929606dd18361248578c67b8067c8c017b000/00137396287703354d8c6c01c904c7d9ff056ae23da865a000/" target="_blank" rel="external">网站</a>讲的也非常详细</p><h5 id="github"><a href="#github" class="headerlink" title="github"></a>github</h5><p>这个相信也不用我介绍了,全球最大的同性交友社区。创建和使用方式参照<a href="https://www.zhihu.com/question/20070065" target="_blank" rel="external">这里</a></p><h3 id="安装hexo"><a href="#安装hexo" class="headerlink" title="安装hexo"></a>安装hexo</h3><p>首先全局安装hexo:</p><pre><code>npm i -g hexo</code></pre><p>如果是mac的话记住在前面加<strong>sudo</strong><br>windows下安装正常,但是在我的mac下报错了。不知道是不是每个人都会遇到。错误如下:<br><img src="/2017/10/25/hexo-config/QQ20171025-222923@2x.png" alt="QQ20171025-222923@2x.png" title=""><br>这个问题卡了我很久,最后找到了解决方案,这里感谢这两篇博客。<a href="http://www.cnblogs.com/jiangzilong/p/6438748.html" target="_blank" rel="external">南不过远洋</a>,<a href="http://www.cnblogs.com/lidonghao/p/3543747.html" target="_blank" rel="external">李东浩</a></p><h5 id="解决方法如下"><a href="#解决方法如下" class="headerlink" title="解决方法如下:"></a>解决方法如下:</h5><p><code>npm config set user 0</code><br><code>npm config set unsafe-perm true</code><br>这时候再输入<code>sudo npm i -g hexo</code>,结果还是报错:<br><img src="/2017/10/25/hexo-config/QQ20171025-223937@2x.png" alt="QQ20171025-223937@2x.png" title=""><br>看错误信息让我删除<code>/usr/local/bin/hexo</code>,可能是之前安装失败但创建路目录,找到删掉,然后重新执行<code>sudo npm i -g hexo</code>,安装成功。</p><p>接下来就是创建目路,初始化。</p><pre><code>mkdir &lt;dir name&gt;cd &lt;dir name&gt;hexo init</code></pre><p>到此安装步骤就完成了。</p><h3 id="编译运行"><a href="#编译运行" class="headerlink" title="编译运行"></a>编译运行</h3><p>可以通过<code>hexo new &lt;title&gt;</code>新建文章,但是写好的文章怎么编译运行呢。</p><pre><code>hexo g  //生成静态页面hexo server //启动本地服务,可以在http://localhost:4000访问</code></pre><p>当然,生成静态页面之前最好<code>hexo clean</code>清理一下。不过如果每次编译运行都输入那么多命令还是挺麻烦的,这时候就可以借助npm的脚本来简化命令。<br>找到根目录下的<strong>package.json</strong>,在scripts中添加如下内容:</p><pre><code>&quot;scripts&quot;: {    &quot;dev&quot;: &quot;hexo clean &amp;&amp; hexo generate &amp;&amp; hexo server&quot; }</code></pre><p>这样以后直接输入<code>npm run dev</code>就可以了。</p><h3 id="部署到github"><a href="#部署到github" class="headerlink" title="部署到github"></a>部署到github</h3><p>在github建立好【your_user_name.github.io】的项目,配置好ssh key。然后在本地项目根目录打开<strong>_config.yml</strong>文件,拉倒最底下,修改如下:</p><pre><code>deploy:  type: git  repo: git@github.com:Guste/Guste.github.io.git  //你的项目地址  branch: master</code></pre><p>然后安装<code>npm i hexo-deployer-git --save</code><br>接下来和之前一样,<code>hexo clean</code>,<code>hexo g</code>,不过最后一步变成了<code>hexo deploy</code>,当然这也也比较比较繁琐,这时候又可以用到npm script了。<br>打开package.json修改:</p><pre><code>&quot;scripts&quot;: {    &quot;build&quot;: &quot;hexo clean &amp;&amp; hexo generate &amp;&amp; hexo deploy&quot;,    &quot;dev&quot;: &quot;hexo clean &amp;&amp; hexo generate &amp;&amp; hexo server&quot;}</code></pre><p>这也以后直接 <code>npm run build</code>就好了。运行成功,打开<a href="http://guste.github.io/" target="_blank" rel="external">http://guste.github.io/</a> (你对应的地址)就可以了。</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;h3 id=&quot;前言&quot;&gt;&lt;a href=&quot;#前言&quot; class=&quot;headerlink&quot; title=&quot;前言&quot;&gt;&lt;/a&gt;前言&lt;/h3&gt;&lt;h5 id=&quot;为什么选择hexo&quot;&gt;&lt;a href=&quot;#为什么选择hexo&quot; class=&quot;headerlink&quot; title=&quot;为什么选择he
+      
+    
+    </summary>
+    
+    
+      <category term="hexo" scheme="http://yoursite.com/tags/hexo/"/>
+    
+  </entry>
+  
+</feed>
