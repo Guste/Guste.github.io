@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://yoursite.com/"/>
-  <updated>2018-04-24T08:38:14.064Z</updated>
+  <updated>2018-04-27T09:28:48.349Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -15,6 +15,63 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>构造函数及module</title>
+    <link href="http://yoursite.com/2018/04/27/%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0%E5%8F%8Amodule/"/>
+    <id>http://yoursite.com/2018/04/27/构造函数及module/</id>
+    <published>2018-04-27T09:15:15.000Z</published>
+    <updated>2018-04-27T09:28:48.349Z</updated>
+    
+    <content type="html"><![CDATA[<p>首先,我们平时使用vuex的语法是</p><pre><code>import Vuex from &apos;vuex&apos;let store = new Vuex.store({    state: {        count: 0,    },    mutations: {        add (state, n) {            state.count += n        }    },    ......})</code></pre><p>那么,我们就从store的构造函数开始看.</p><pre><code>//确保使用vuex前已经载入了vueif (!Vue &amp;&amp; typeof window !== &apos;undefined&apos; &amp;&amp; window.Vue) {  install(window.Vue)}//确保浏览器支持promise以及当前的this指向storeif (process.env.NODE_ENV !== &apos;production&apos;) {  assert(Vue, `must call Vue.use(Vuex) before creating a store instance.`)  assert(typeof Promise !== &apos;undefined&apos;, `vuex requires a Promise polyfill in this browser.`)  assert(this instanceof Store, `store must be called with the new operator.`)}</code></pre><p>然后是store内部的状态</p><pre><code>// store internal statethis._committing = falsethis._actions = Object.create(null)  //保存actionsthis._actionSubscribers = []this._mutations = Object.create(null)  //保存mutationsthis._wrappedGetters = Object.create(null)  //保存包装好后的getterthis._modules = new ModuleCollection(options) //生成根节点的modules,属性即构造函数传入的optionsthis._modulesNamespaceMap = Object.create(null)  //modules对应的命名空间this._subscribers = []this._watcherVM = new Vue() //生成一个vue的实例使state变为响应式// 绑定commit和dispatch的上下文,防止store的this指向改变const store = thisconst { dispatch, commit } = thisthis.dispatch = function boundDispatch (type, payload) {  return dispatch.call(store, type, payload)}this.commit = function boundCommit (type, payload, options) {  return commit.call(store, type, payload, options)}// strict modethis.strict = strict//这里的state就是根节点的state了.const state = this._modules.root.state// init root module.// this also recursively registers all sub-modules// and collects all module getters inside this._wrappedGetters//初始化root module,并且递归初始化所有子moduleinstallModule(this, state, [], this._modules.root)// initialize the store vm, which is responsible for the reactivity// (also registers _wrappedGetters as computed properties)resetStoreVM(this, state)</code></pre><p>构造函数的内容大致介绍这些,我们来看一下构造函数里面调用的一些方法</p><p>###ModuleCollection<br>src/module/module-collection.js</p><pre><code>constructor (rawRootModule) {    // register root module (Vuex.Store options)    //生成实例时传入store的option,注册生成root module    this.register([], rawRootModule, false)}register (path, rawModule, runtime = true) {    if (process.env.NODE_ENV !== &apos;production&apos;) {      assertRawModule(path, rawModule)    }    //生成一个Module实例    const newModule = new Module(rawModule, runtime)    if (path.length === 0) {      //绑定到根节点      this.root = newModule    } else {      //获取父级module并将子module绑定      const parent = this.get(path.slice(0, -1))      parent.addChild(path[path.length - 1], newModule)    }    //递归初始化所有子module    // register nested modules    if (rawModule.modules) {      forEachValue(rawModule.modules, (rawChildModule, key) =&gt; {        this.register(path.concat(key), rawChildModule, runtime)      })    }  }</code></pre><p>这里面注册module时声明了一个Module实例放到root,那么Module是怎么实现的呢?我们来看一下Module的构造函数</p><p>###Module<br>./src/module/module.js</p><pre><code>constructor (rawModule, runtime) {    this.runtime = runtime    // 子module    this._children = Object.create(null)    // 传入的module与该module下的state    this._rawModule = rawModule    const rawState = rawModule.state    // 统一state风格为键值对形式    this.state = (typeof rawState === &apos;function&apos; ? rawState() : rawState) || {}}//添加子moduleaddChild (key, module) {    this._children[key] = module}</code></pre><p>如此一来,vuex里module树就建立和初始化我们就清楚了.接下来来看<code>installModule</code>的作用</p><p>###installModule<br>在store的构造函数中,<code>installModule</code>传入了4个参数,分别是Store,根module的state,一个空数组(path),以及根module</p><blockquote><p>installModule(this, state, [], this._modules.root)</p></blockquote><p>那我们来看看<code>installModule</code>函数内部做了什么</p><pre><code>function installModule (store, rootState, path, module, hot) {    //判断是否是根module    const isRoot = !path.length    //getNamespace的作用为将传入的path,即namespace以/拼接起来(namespace对应的module需真实存在    const namespace = store._modules.getNamespace(path)    //如果传入的module有namespaced,则将namespace作为_modulesNamespaceMap的key,将对应的module作为值存放,相当于一个快捷访问对应namespace的module的快捷方式    if (module.namespaced) {        store._modulesNamespaceMap[namespace] = module    }    if (!isRoot &amp;&amp; !hot) {        //使用vue.set来监听module的state,使其数据变成响应式的.        const parentState = getNestedState(rootState, path.slice(0, -1))        const moduleName = path[path.length - 1]        store._withCommit(() =&gt; {            Vue.set(parentState, moduleName, module.state)        })    }    //为当前module设置局部的commit和dispatch方法    const local = module.context = makeLocalContext(store, namespace, path)    //循环当前module下配置的mutations    module.forEachMutation((mutation, key) =&gt; {        //通过namespace加上mutation方法名的形式生成独一无二的mutation方法名        const namespacedType = namespace + key        //注册mutation,得到包装后的mutation方法.        registerMutation(store, namespacedType, mutation, local)    })</code></pre><p><code>registerMutation</code>注册生成mutations方法大致如下</p><pre><code>function registerMutation (store, type, handler, local) {      const entry = store._mutations[type] || (store._mutations[type] = [])      entry.push(function wrappedMutationHandler (payload) {        handler.call(store, local.state, payload)      })}</code></pre><p>假设我们有个moduleA他的mutation有个方法叫count,那么生成的mutations大致如下</p><pre><code>store._mutations.moduleAcount[    function wrappedMutationHandler (payload) {        //这里的handler就是我们在moduleA里写的mutation的对应的方法,里面传入了我们需要的state合payload.        handler.call(store, local.state, payload)    }    ......]</code></pre><p>同理,接下来是循环注册action,getter,并且递归为所以子module执行<code>installModule</code></p><pre><code>module.forEachAction((action, key) =&gt; {    const type = action.root ? key : namespace + key    const handler = action.handler || action    registerAction(store, type, handler, local)})module.forEachGetter((getter, key) =&gt; {    const namespacedType = namespace + key    registerGetter(store, namespacedType, getter, local)})module.forEachChild((child, key) =&gt; {    installModule(store, rootState, path.concat(key), child, hot)})</code></pre><p>其中registerAction稍微复杂一些</p><pre><code>function registerAction (store, type, handler, local) {  const entry = store._actions[type] || (store._actions[type] = [])  entry.push(function wrappedActionHandler (payload, cb) {    //暴露更多的方法,并且最终生成一个promise,同时也可支持回调    let res = handler.call(store, {      dispatch: local.dispatch,      commit: local.commit,      getters: local.getters,      state: local.state,      rootGetters: store.getters,      rootState: store.state    }, payload, cb)    if (!isPromise(res)) {      res = Promise.resolve(res)    }    if (store._devtoolHook) {      return res.catch(err =&gt; {        store._devtoolHook.emit(&apos;vuex:error&apos;, err)        throw err      })    } else {      return res    }  })}</code></pre><p>至此,installModule方法也讲完了,还剩下最后的resetStoreVM.顾名思义这个方法就是重置vue的实例对象重新生成.把原来的state,getter方法都挂载到新的vue里,并且销毁原来的vue实例.</p><pre><code>function resetStoreVM (store, state, hot) {  const oldVm = store._vm  // bind store public getters  store.getters = {}  const wrappedGetters = store._wrappedGetters  const computed = {}  forEachValue(wrappedGetters, (fn, key) =&gt; {    // use computed to leverage its lazy-caching mechanism    computed[key] = () =&gt; fn(store)    Object.defineProperty(store.getters, key, {      get: () =&gt; store._vm[key],      enumerable: true // for local getters    })  })  // use a Vue instance to store the state tree  // suppress warnings just in case the user has added  // some funky global mixins  const silent = Vue.config.silent  Vue.config.silent = true  store._vm = new Vue({    data: {      $$state: state    },    computed  })  Vue.config.silent = silent  // enable strict mode for new vm  if (store.strict) {    enableStrictMode(store)  }  if (oldVm) {    if (hot) {      // dispatch changes in all subscribed watchers      // to force getter re-evaluation for hot reloading.      store._withCommit(() =&gt; {        oldVm._data.$$state = null      })    }    Vue.nextTick(() =&gt; oldVm.$destroy())  }}</code></pre>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;首先,我们平时使用vuex的语法是&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;import Vuex from &amp;apos;vuex&amp;apos;
+let store = new Vuex.store({
+    state: {
+        count: 0,
+    },
+   
+      
+    
+    </summary>
+    
+      <category term="vuex源码解析" scheme="http://yoursite.com/categories/vuex%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/"/>
+    
+    
+      <category term="vuex" scheme="http://yoursite.com/tags/vuex/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>vuex源码解析 (前言)</title>
+    <link href="http://yoursite.com/2018/04/27/vuex%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E5%89%8D%E8%A8%80/"/>
+    <id>http://yoursite.com/2018/04/27/vuex源码解析-前言/</id>
+    <published>2018-04-27T09:09:20.000Z</published>
+    <updated>2018-04-27T09:28:44.769Z</updated>
+    
+    <content type="html"><![CDATA[<p>阅读vuex源码前首先说一下他的作用,主要就是为了解决在组件化开发时日益复杂的状态问题.当页面,组件,路由之间嵌套,各自的data又及其臃肿,组件间互相通信,,交互,在项目庞大后必定变的难以维护.而vuex就是专门基于vue的组件化开发时用来管理状态的插件.</p><h4 id="vuex核心概念"><a href="#vuex核心概念" class="headerlink" title="vuex核心概念"></a>vuex核心概念</h4><p>vue的核心概念主要分为</p><ul><li>state </li><li>getter</li><li>mutation</li><li>action</li><li>module</li></ul><p>所以接下来的源码解析也主要是围绕这五个方面.</p><h4 id="state"><a href="#state" class="headerlink" title="state"></a>state</h4><p>既然前面说了vuex是一个状态管理机,那么这里的state就是属于被管理的状态,在还没有阅读源码前有个疑问就是vue的state是怎样保存的,并且怎样保证其状态不会被随意更改</p><h4 id="getter"><a href="#getter" class="headerlink" title="getter"></a>getter</h4><p>大致可以理解成vue中的computer类似的方法,通过state或其它getter里的方法计算出一个结果return出去</p><h4 id="mutation"><a href="#mutation" class="headerlink" title="mutation"></a>mutation</h4><p>vue中提交更改state的方法.这里的疑问就是mutation提交,state更新后如何通知vue</p><h4 id="action"><a href="#action" class="headerlink" title="action"></a>action</h4><p>使用方法同mutation,主要用来执行异步的分发</p><h4 id="module"><a href="#module" class="headerlink" title="module"></a>module</h4><p>防止单一的状态树过于臃肿,所以将其拆分成module进行维护</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;阅读vuex源码前首先说一下他的作用,主要就是为了解决在组件化开发时日益复杂的状态问题.当页面,组件,路由之间嵌套,各自的data又及其臃肿,组件间互相通信,,交互,在项目庞大后必定变的难以维护.而vuex就是专门基于vue的组件化开发时用来管理状态的插件.&lt;/p&gt;
+&lt;h4
+      
+    
+    </summary>
+    
+      <category term="vuex源码解析" scheme="http://yoursite.com/categories/vuex%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/"/>
+    
+    
+      <category term="vuex" scheme="http://yoursite.com/tags/vuex/"/>
+    
+  </entry>
   
   <entry>
     <title>jquery jsonp设置jsonpCallback遇到的坑</title>

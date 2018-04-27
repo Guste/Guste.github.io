@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="Hexo, NexT" />
+  <meta name="keywords" content="vuex," />
 
 
 
@@ -81,16 +81,18 @@
 
 
 
-<meta name="description" content="谁能想到...当一个人来到了无人区,无人区遍不再是无人区.">
-<meta property="og:type" content="website">
-<meta property="og:title" content="金礼秋的博客">
-<meta property="og:url" content="http://yoursite.com/archives/2017/10/index.html">
+<meta name="description" content="阅读vuex源码前首先说一下他的作用,主要就是为了解决在组件化开发时日益复杂的状态问题.当页面,组件,路由之间嵌套,各自的data又及其臃肿,组件间互相通信,,交互,在项目庞大后必定变的难以维护.而vuex就是专门基于vue的组件化开发时用来管理状态的插件. vuex核心概念vue的核心概念主要分为  state  getter mutation action module  所以接下来的源码解析">
+<meta name="keywords" content="vuex">
+<meta property="og:type" content="article">
+<meta property="og:title" content="vuex源码解析 (前言)">
+<meta property="og:url" content="http://yoursite.com/2018/04/27/vuex源码解析-前言/index.html">
 <meta property="og:site_name" content="金礼秋的博客">
-<meta property="og:description" content="谁能想到...当一个人来到了无人区,无人区遍不再是无人区.">
+<meta property="og:description" content="阅读vuex源码前首先说一下他的作用,主要就是为了解决在组件化开发时日益复杂的状态问题.当页面,组件,路由之间嵌套,各自的data又及其臃肿,组件间互相通信,,交互,在项目庞大后必定变的难以维护.而vuex就是专门基于vue的组件化开发时用来管理状态的插件. vuex核心概念vue的核心概念主要分为  state  getter mutation action module  所以接下来的源码解析">
 <meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-04-27T09:28:44.769Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="金礼秋的博客">
-<meta name="twitter:description" content="谁能想到...当一个人来到了无人区,无人区遍不再是无人区.">
+<meta name="twitter:title" content="vuex源码解析 (前言)">
+<meta name="twitter:description" content="阅读vuex源码前首先说一下他的作用,主要就是为了解决在组件化开发时日益复杂的状态问题.当页面,组件,路由之间嵌套,各自的data又及其臃肿,组件间互相通信,,交互,在项目庞大后必定变的难以维护.而vuex就是专门基于vue的组件化开发时用来管理状态的插件. vuex核心概念vue的核心概念主要分为  state  getter mutation action module  所以接下来的源码解析">
 
 
 
@@ -120,13 +122,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/archives/2017/10/"/>
+  <link rel="canonical" href="http://yoursite.com/2018/04/27/vuex源码解析-前言/"/>
 
 
 
 
 
-  <title>归档 | 金礼秋的博客</title>
+  <title>vuex源码解析 (前言) | 金礼秋的博客</title>
   
 
 
@@ -155,7 +157,7 @@
     
   
 
-  <div class="container sidebar-position-left page-archive">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -253,111 +255,208 @@
           <div id="content" class="content">
             
 
+  <div id="posts" class="posts-expand">
+    
+
+  
+
   
   
   
-  <div class="post-block archive">
-    <div id="posts" class="posts-collapse">
-      <span class="archive-move-on"></span>
-
-      <span class="archive-page-counter">
-        
-        
-        
-          
-        
-        嗯..! 目前共计 5 篇日志。 继续努力。
-      </span>
-
-      
-
-        
-        
-        
-
-        
-          
-          <div class="collection-title">
-            <h1 class="archive-year" id="archive-year-2017">2017</h1>
-          </div>
-        
-        
-
-        
 
   <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/04/27/vuex源码解析-前言/">
 
-      <h2 class="post-title">
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Guste">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="金礼秋的博客">
+    </span>
+
+    
+      <header class="post-header">
+
         
-            <a class="post-title-link" href="/2017/10/25/audio-and-206/" itemprop="url">
-              
-                <span itemprop="name">audio标签与206状态码</span>
-              
-            </a>
         
-      </h2>
+          <h1 class="post-title" itemprop="name headline">vuex源码解析 (前言)</h1>
+        
 
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2017-10-25T23:18:36+08:00"
-              content="2017-10-25" >
-          10-25
-        </time>
-      </div>
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-27T17:09:20+08:00">
+                2018-04-27
+              </time>
+            
 
-    </header>
-  </article>
+            
 
+            
+          </span>
 
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/vuex源码解析/" itemprop="url" rel="index">
+                    <span itemprop="name">vuex源码解析</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/27/vuex源码解析-前言/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/2018/04/27/vuex源码解析-前言/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2018/04/27/vuex源码解析-前言/" class="leancloud_visitors" data-flag-title="vuex源码解析 (前言)">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
 
       
-
-        
-        
-        
-
-        
-        
-
-        
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <h2 class="post-title">
-        
-            <a class="post-title-link" href="/2017/10/25/hexo-config/" itemprop="url">
-              
-                <span itemprop="name">hexo配置</span>
-              
-            </a>
-        
-      </h2>
-
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2017-10-25T21:47:57+08:00"
-              content="2017-10-25" >
-          10-25
-        </time>
-      </div>
-
-    </header>
-  </article>
-
-
-
       
 
+      
+        <p>阅读vuex源码前首先说一下他的作用,主要就是为了解决在组件化开发时日益复杂的状态问题.当页面,组件,路由之间嵌套,各自的data又及其臃肿,组件间互相通信,,交互,在项目庞大后必定变的难以维护.而vuex就是专门基于vue的组件化开发时用来管理状态的插件.</p>
+<h4 id="vuex核心概念"><a href="#vuex核心概念" class="headerlink" title="vuex核心概念"></a>vuex核心概念</h4><p>vue的核心概念主要分为</p>
+<ul>
+<li>state </li>
+<li>getter</li>
+<li>mutation</li>
+<li>action</li>
+<li>module</li>
+</ul>
+<p>所以接下来的源码解析也主要是围绕这五个方面.</p>
+<h4 id="state"><a href="#state" class="headerlink" title="state"></a>state</h4><p>既然前面说了vuex是一个状态管理机,那么这里的state就是属于被管理的状态,在还没有阅读源码前有个疑问就是vue的state是怎样保存的,并且怎样保证其状态不会被随意更改</p>
+<h4 id="getter"><a href="#getter" class="headerlink" title="getter"></a>getter</h4><p>大致可以理解成vue中的computer类似的方法,通过state或其它getter里的方法计算出一个结果return出去</p>
+<h4 id="mutation"><a href="#mutation" class="headerlink" title="mutation"></a>mutation</h4><p>vue中提交更改state的方法.这里的疑问就是mutation提交,state更新后如何通知vue</p>
+<h4 id="action"><a href="#action" class="headerlink" title="action"></a>action</h4><p>使用方法同mutation,主要用来执行异步的分发</p>
+<h4 id="module"><a href="#module" class="headerlink" title="module"></a>module</h4><p>防止单一的状态树过于臃肿,所以将其拆分成module进行维护</p>
+
+      
     </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/vuex/" rel="tag"># vuex</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/04/24/jquery-jsonp设置jsonpCallback遇到的坑/" rel="next" title="jquery jsonp设置jsonpCallback遇到的坑">
+                <i class="fa fa-chevron-left"></i> jquery jsonp设置jsonpCallback遇到的坑
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/04/27/构造函数及module/" rel="prev" title="构造函数及module">
+                构造函数及module <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
   </div>
   
   
   
+  </article>
 
-  
 
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
 
 
           </div>
@@ -365,6 +464,13 @@
 
 
           
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
 
         </div>
         
@@ -385,8 +491,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -469,6 +584,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#vuex核心概念"><span class="nav-number">1.</span> <span class="nav-text">vuex核心概念</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#state"><span class="nav-number">2.</span> <span class="nav-text">state</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#getter"><span class="nav-number">3.</span> <span class="nav-text">getter</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#mutation"><span class="nav-number">4.</span> <span class="nav-text">mutation</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#action"><span class="nav-number">5.</span> <span class="nav-text">action</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#module"><span class="nav-number">6.</span> <span class="nav-text">module</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
@@ -615,6 +746,10 @@
   
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
 
   
 
