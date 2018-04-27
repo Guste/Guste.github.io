@@ -89,7 +89,7 @@
 <meta property="og:site_name" content="金礼秋的博客">
 <meta property="og:description" content="事情起因源自维护一份老的代码，其中跨域请求通过jsonp来获取数据，然后通过jquery的ajax方法来使用jsonp. 问题：代码中需要重复调用同一接口，但是接口在数据成功获取到的情况下，并未进入success回调，而是进入error，查看错误信息显示的是abort。 通过反复调试，最后发现$.ajax方法传入的option中有个参数叫jsonpCallback，其作用是指定callback回调">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2018-04-24T08:38:14.064Z">
+<meta property="og:updated_time" content="2018-04-27T10:03:48.904Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="jquery jsonp设置jsonpCallback遇到的坑">
 <meta name="twitter:description" content="事情起因源自维护一份老的代码，其中跨域请求通过jsonp来获取数据，然后通过jquery的ajax方法来使用jsonp. 问题：代码中需要重复调用同一接口，但是接口在数据成功获取到的情况下，并未进入success回调，而是进入error，查看错误信息显示的是abort。 通过反复调试，最后发现$.ajax方法传入的option中有个参数叫jsonpCallback，其作用是指定callback回调">
@@ -272,7 +272,7 @@
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/04/24/jquery-jsonp设置jsonpCallback遇到的坑/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="Guste">
+      <meta itemprop="name" content="金礼秋">
       <meta itemprop="description" content="">
       <meta itemprop="image" content="/images/avatar.gif">
     </span>
@@ -362,66 +362,8 @@
 <p>通过反复调试，最后发现<code>$.ajax</code>方法传入的<code>option</code>中有个参数叫<code>jsonpCallback</code>，其作用是指定<code>callback</code>回调时函数体的名称。这里写的是一个固定的值。试着修改通过给设定的<code>jsonpCallback</code>的值加入时间戳或者直接删除<code>jsonpCallback</code>，重复的请求jsonp就可以进入<code>success</code>了。虽然问题已经解决了，但其内在的逻辑仍需要探清。</p>
 <h4 id="分析："><a href="#分析：" class="headerlink" title="分析："></a>分析：</h4><p>通过表象来看只是每次请求时<code>jsonpCallback</code>名称是否相同导致是否<code>success</code>，那么是什么原因呢？<code>jsonp</code>众所周知就是通过一个<code>script</code>标签来跨域请求目标服务器的对应接口数据，然后执行回调函数获得所需的data.所以按理说相同的回调函数名会影响得到其包裹的data吗？显然不会。那么可能就和<code>jquery</code>有关了。</p>
 <h4 id="jquery源码（好像贴的是zepto的，无所谓了。）"><a href="#jquery源码（好像贴的是zepto的，无所谓了。）" class="headerlink" title="jquery源码（好像贴的是zepto的，无所谓了。）"></a>jquery源码（好像贴的是zepto的，无所谓了。）</h4><p>我们找到与jsonp相关的部分</p>
-<pre><code>//options就是我们通过$.ajax传入的参数
-$.ajaxJSONP = function(options, deferred){
-    if (!(&apos;type&apos; in options)) return $.ajax(options)
-    //我们传入的jsonpCallback赋值给了_callbackName，若没传，则callbackName就是一个随机动态的字符串
-    var _callbackName = options.jsonpCallback,
-      callbackName = ($.isFunction(_callbackName) ?
-        _callbackName() : _callbackName) || (&apos;Zepto&apos; + (jsonpID++)),
-        //生成一个script标签，用来请求数据
-      script = document.createElement(&apos;script&apos;),
-      originalCallback = window[callbackName],
-      responseData,
-      //中断请求的方法
-      abort = function(errorType) {
-        $(script).triggerHandler(&apos;error&apos;, errorType || &apos;abort&apos;)
-      },
-      xhr = { abort: abort }, abortTimeout
-
-    if (deferred) deferred.promise(xhr)
-    //监听script标签的load和error事件
-    $(script).on(&apos;load error&apos;, function(e, errorType){
-      clearTimeout(abortTimeout)
-      //移除script标签
-      $(script).off().remove()
-        //若没有返回数据或者请求状态错误则抛出移除进入error,否则进入success
-      if (e.type == &apos;error&apos; || !responseData) {
-        ajaxError(null, errorType || &apos;error&apos;, xhr, options, deferred)
-      } else {
-        ajaxSuccess(responseData[0], xhr, options, deferred)
-      }
-      //这里获取外层的originalCallback,也就是callbackName
-      window[callbackName] = originalCallback
-      if (responseData &amp;&amp; $.isFunction(originalCallback))
-        originalCallback(responseData[0])
-
-      //清空返回的responseData
-      originalCallback = responseData = undefined
-    })
-
-    if (ajaxBeforeSend(xhr, options) === false) {
-      abort(&apos;abort&apos;)
-      return xhr
-    }
-
-    //以callbackName为变量名声明函数，绑到window上，其传参就是responseData
-    window[callbackName] = function(){
-      responseData = arguments
-    }
-
-    //script标签的src即我们需要请求的接口的地址，将标签插入head
-    script.src = options.url.replace(/\?(.+)=\?/, &apos;?$1=&apos; + callbackName)
-    document.head.appendChild(script)
-
-    //若超时则抛出异常。
-    if (options.timeout &gt; 0) abortTimeout = setTimeout(function(){
-      abort(&apos;timeout&apos;)
-    }, options.timeout)
-
-    return xhr
-  }
-</code></pre><p>这里我们模拟一下使用<code>jquery</code>发起一个jsonp的请求的过程，就可以得出结论了。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//options就是我们通过$.ajax传入的参数</span></div><div class="line">$.ajaxJSONP = <span class="function"><span class="keyword">function</span>(<span class="params">options, deferred</span>)</span>&#123;</div><div class="line">  <span class="keyword">if</span> (!(<span class="string">'type'</span> <span class="keyword">in</span> options)) <span class="keyword">return</span> $.ajax(options)</div><div class="line">  <span class="comment">//我们传入的jsonpCallback赋值给了_callbackName，若没传，则callbackName就是一个随机动态的字符串</span></div><div class="line">  <span class="keyword">var</span> _callbackName = options.jsonpCallback,</div><div class="line">    callbackName = ($.isFunction(_callbackName) ?</div><div class="line">      _callbackName() : _callbackName) || (<span class="string">'Zepto'</span> + (jsonpID++)),</div><div class="line">      <span class="comment">//生成一个script标签，用来请求数据</span></div><div class="line">    script = <span class="built_in">document</span>.createElement(<span class="string">'script'</span>),</div><div class="line">    originalCallback = <span class="built_in">window</span>[callbackName],</div><div class="line">    responseData,</div><div class="line">    <span class="comment">//中断请求的方法</span></div><div class="line">    abort = <span class="function"><span class="keyword">function</span>(<span class="params">errorType</span>) </span>&#123;</div><div class="line">      $(script).triggerHandler(<span class="string">'error'</span>, errorType || <span class="string">'abort'</span>)</div><div class="line">    &#125;,</div><div class="line">    xhr = &#123; <span class="attr">abort</span>: abort &#125;, abortTimeout</div><div class="line"></div><div class="line">  <span class="keyword">if</span> (deferred) deferred.promise(xhr)</div><div class="line">  <span class="comment">//监听script标签的load和error事件</span></div><div class="line">  $(script).on(<span class="string">'load error'</span>, <span class="function"><span class="keyword">function</span>(<span class="params">e, errorType</span>)</span>&#123;</div><div class="line">    clearTimeout(abortTimeout)</div><div class="line">    <span class="comment">//移除script标签</span></div><div class="line">    $(script).off().remove()</div><div class="line">      <span class="comment">//若没有返回数据或者请求状态错误则抛出移除进入error,否则进入success</span></div><div class="line">    <span class="keyword">if</span> (e.type == <span class="string">'error'</span> || !responseData) &#123;</div><div class="line">      ajaxError(<span class="literal">null</span>, errorType || <span class="string">'error'</span>, xhr, options, deferred)</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      ajaxSuccess(responseData[<span class="number">0</span>], xhr, options, deferred)</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//这里获取外层的originalCallback,也就是callbackName</span></div><div class="line">    <span class="built_in">window</span>[callbackName] = originalCallback</div><div class="line">    <span class="keyword">if</span> (responseData &amp;&amp; $.isFunction(originalCallback))</div><div class="line">      originalCallback(responseData[<span class="number">0</span>])</div><div class="line"></div><div class="line">    <span class="comment">//清空返回的responseData</span></div><div class="line">    originalCallback = responseData = <span class="literal">undefined</span></div><div class="line">  &#125;)</div><div class="line"></div><div class="line">  <span class="keyword">if</span> (ajaxBeforeSend(xhr, options) === <span class="literal">false</span>) &#123;</div><div class="line">    abort(<span class="string">'abort'</span>)</div><div class="line">    <span class="keyword">return</span> xhr</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">//以callbackName为变量名声明函数，绑到window上，其传参就是responseData</span></div><div class="line">  <span class="built_in">window</span>[callbackName] = <span class="function"><span class="keyword">function</span>(<span class="params"></span>)</span>&#123;</div><div class="line">    responseData = <span class="built_in">arguments</span></div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">//script标签的src即我们需要请求的接口的地址，将标签插入head</span></div><div class="line">  script.src = options.url.replace(<span class="regexp">/\?(.+)=\?/</span>, <span class="string">'?$1='</span> + callbackName)</div><div class="line">  <span class="built_in">document</span>.head.appendChild(script)</div><div class="line"></div><div class="line">  <span class="comment">//若超时则抛出异常。</span></div><div class="line">  <span class="keyword">if</span> (options.timeout &gt; <span class="number">0</span>) abortTimeout = setTimeout(<span class="function"><span class="keyword">function</span>(<span class="params"></span>)</span>&#123;</div><div class="line">    abort(<span class="string">'timeout'</span>)</div><div class="line">  &#125;, options.timeout)</div><div class="line"></div><div class="line">  <span class="keyword">return</span> xhr</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这里我们模拟一下使用<code>jquery</code>发起一个jsonp的请求的过程，就可以得出结论了。</p>
 <ol>
 <li>调用$.ajax方法</li>
 <li>生成script标签</li>
@@ -558,7 +500,7 @@ $.ajaxJSONP = function(options, deferred){
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
-              <p class="site-author-name" itemprop="name">Guste</p>
+              <p class="site-author-name" itemprop="name">金礼秋</p>
               <p class="site-description motion-element" itemprop="description">谁能想到...当一个人来到了无人区,无人区遍不再是无人区.</p>
           </div>
 
@@ -623,6 +565,12 @@ $.ajaxJSONP = function(options, deferred){
                         <i class="fa fa-fw fa-globe"></i>E-Mail</a>
                   </span>
                 
+                  <span class="links-of-author-item">
+                    <a href="https://www.zhihu.com/people/jin-li-qiu" target="_blank" title="知乎">
+                      
+                        <i class="fa fa-fw fa-globe"></i>知乎</a>
+                  </span>
+                
             </div>
           
 
@@ -671,7 +619,7 @@ $.ajaxJSONP = function(options, deferred){
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
-  <span class="author" itemprop="copyrightHolder">Guste</span>
+  <span class="author" itemprop="copyrightHolder">金礼秋</span>
 
   
 </div>
