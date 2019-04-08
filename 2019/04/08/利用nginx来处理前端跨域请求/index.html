@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="Hexo, NexT" />
+  <meta name="keywords" content="nginx,cros,问题记录," />
 
 
 
@@ -81,16 +81,18 @@
 
 
 
-<meta name="description" content="谁能想到...当一个人来到了无人区,无人区遍不再是无人区.">
-<meta property="og:type" content="website">
-<meta property="og:title" content="金礼秋的博客">
-<meta property="og:url" content="http://yoursite.com/archives/2018/07/index.html">
+<meta name="description" content="9102年的前端, 浏览器跨域访问限制的问题不用多说了.常用的解决方案无非jsonp, 服务端设置cros允许跨域, iframe, 代理服务转发等等. 这里使用nginx来进行转发, 所以cros相关配置要写入nginx配置 问题场景前端业务主要应用在webview中, 由客户端根据离线包更新机制决定什么时候访问线上资源, 什么时候下载更新使用离线资源. 因为jsonp只能发送get请求且无法携">
+<meta name="keywords" content="nginx,cros,问题记录">
+<meta property="og:type" content="article">
+<meta property="og:title" content="利用nginx来处理前端跨域请求">
+<meta property="og:url" content="http://yoursite.com/2019/04/08/利用nginx来处理前端跨域请求/index.html">
 <meta property="og:site_name" content="金礼秋的博客">
-<meta property="og:description" content="谁能想到...当一个人来到了无人区,无人区遍不再是无人区.">
+<meta property="og:description" content="9102年的前端, 浏览器跨域访问限制的问题不用多说了.常用的解决方案无非jsonp, 服务端设置cros允许跨域, iframe, 代理服务转发等等. 这里使用nginx来进行转发, 所以cros相关配置要写入nginx配置 问题场景前端业务主要应用在webview中, 由客户端根据离线包更新机制决定什么时候访问线上资源, 什么时候下载更新使用离线资源. 因为jsonp只能发送get请求且无法携">
 <meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-04-08T08:46:03.114Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="金礼秋的博客">
-<meta name="twitter:description" content="谁能想到...当一个人来到了无人区,无人区遍不再是无人区.">
+<meta name="twitter:title" content="利用nginx来处理前端跨域请求">
+<meta name="twitter:description" content="9102年的前端, 浏览器跨域访问限制的问题不用多说了.常用的解决方案无非jsonp, 服务端设置cros允许跨域, iframe, 代理服务转发等等. 这里使用nginx来进行转发, 所以cros相关配置要写入nginx配置 问题场景前端业务主要应用在webview中, 由客户端根据离线包更新机制决定什么时候访问线上资源, 什么时候下载更新使用离线资源. 因为jsonp只能发送get请求且无法携">
 
 
 
@@ -120,13 +122,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/archives/2018/07/"/>
+  <link rel="canonical" href="http://yoursite.com/2019/04/08/利用nginx来处理前端跨域请求/"/>
 
 
 
 
 
-  <title>归档 | 金礼秋的博客</title>
+  <title>利用nginx来处理前端跨域请求 | 金礼秋的博客</title>
   
 
 
@@ -155,7 +157,7 @@
     
   
 
-  <div class="container sidebar-position-left page-archive">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -253,74 +255,188 @@
           <div id="content" class="content">
             
 
+  <div id="posts" class="posts-expand">
+    
+
+  
+
   
   
   
-  <div class="post-block archive">
-    <div id="posts" class="posts-collapse">
-      <span class="archive-move-on"></span>
-
-      <span class="archive-page-counter">
-        
-        
-        
-          
-        
-        嗯..! 目前共计 8 篇日志。 继续努力。
-      </span>
-
-      
-
-        
-        
-        
-
-        
-          
-          <div class="collection-title">
-            <h1 class="archive-year" id="archive-year-2018">2018</h1>
-          </div>
-        
-        
-
-        
 
   <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/04/08/利用nginx来处理前端跨域请求/">
 
-      <h2 class="post-title">
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="金礼秋">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="金礼秋的博客">
+    </span>
+
+    
+      <header class="post-header">
+
         
-            <a class="post-title-link" href="/2018/07/24/video标签事件指北/" itemprop="url">
-              
-                <span itemprop="name">video标签事件指北</span>
-              
-            </a>
         
-      </h2>
+          <h1 class="post-title" itemprop="name headline">利用nginx来处理前端跨域请求</h1>
+        
 
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2018-07-24T21:35:57+08:00"
-              content="2018-07-24" >
-          07-24
-        </time>
-      </div>
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-04-08T15:39:25+08:00">
+                2019-04-08
+              </time>
+            
 
-    </header>
-  </article>
+            
 
+            
+          </span>
 
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/04/08/利用nginx来处理前端跨域请求/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/2019/04/08/利用nginx来处理前端跨域请求/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2019/04/08/利用nginx来处理前端跨域请求/" class="leancloud_visitors" data-flag-title="利用nginx来处理前端跨域请求">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
 
       
+      
 
+      
+        <p>9102年的前端, 浏览器跨域访问限制的问题不用多说了.常用的解决方案无非jsonp, 服务端设置cros允许跨域, iframe, 代理服务转发等等. 这里使用nginx来进行转发, 所以cros相关配置要写入nginx配置</p>
+<h4 id="问题场景"><a href="#问题场景" class="headerlink" title="问题场景"></a>问题场景</h4><p>前端业务主要应用在webview中, 由客户端根据离线包更新机制决定什么时候访问线上资源, 什么时候下载更新使用离线资源. 因为jsonp只能发送get请求且无法携带cookie, 所以pass. 有现成的基于node和php的代理中转服务, 但是链路太长, 且错误返回不可控, 所以使用nginx作为代理服务转发请求到服务端. 线上接口请求通过nginx代理转发, 都在同域名下, 所以是ok的. 但是离线资源因为是在本地, 所以协议头为<code>file://</code>, 如此一来就发生跨域了. 根据观察发现在跨域时只发送了options, 返回204. 后续的post请求没有发送.</p>
+<h4 id="options请求"><a href="#options请求" class="headerlink" title="options请求"></a>options请求</h4><p>当发生复杂跨域请求时, 浏览器会发送预检请求给服务端, 即method为options的http请求来判断是否安全. 何为复杂请求? 即对应的非简单请求. 大致简单请求列一下有这些:</p>
+<ul>
+<li>方法为<code>GET</code>, <code>HEAD</code>, <code>POST</code></li>
+<li>请求头中无自定义头, <code>Content-Type</code>为<code>text/plain</code>, <code>multipart/form-data</code>, <code>application/x-www-form-urlencoded</code><br>除此之外, 可认定为复杂请求</li>
+</ul>
+<h4 id="服务端cros配置"><a href="#服务端cros配置" class="headerlink" title="服务端cros配置"></a>服务端cros配置</h4><ul>
+<li><code>Access-Control-Allow-Origin</code>: 允许跨域的host, 除此之外其他来源的站点皆为不可信. 当设置为<code>*</code>时代表允许所有来访的站点跨域获取数据</li>
+<li><code>Access-Control-Allow-Methods</code>: 允许跨域获取数据的请求方式, 除指定的methods外皆为不可信</li>
+<li><code>Access-Control-Allow-Headers</code>: 允许携带的请求头字段</li>
+<li><code>Access-Control-Allow-Credentials</code>: 是否允许后续请求携带认证信息（cookies）,该值只能是true,否则不返回</li>
+<li><code>Access-Control-Max-Age</code>: 预检结果缓存时间</li>
+</ul>
+<h4 id="问题分析"><a href="#问题分析" class="headerlink" title="问题分析"></a>问题分析</h4><p>既然发送了options请求, 那么可以断定是客户端通过离线资源来访问页面发生了跨域. 预检请求发送过去后, 后续的post请求没有跟上, 则说明请求未通过服务端设置的校验规则. 我们来看一下nginx的配置如下:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">if ($request_method = &apos;OPTIONS&apos;) &#123;</div><div class="line">	return 204;</div><div class="line">&#125;</div><div class="line"></div><div class="line">add_header Access-Control-Allow-Origin &apos;*&apos;;</div><div class="line">add_header Access-Control-Allow-Methods &apos;GET, POST, OPTIONS&apos;;</div><div class="line">add_header Access-Control-Allow-Headers &apos;Applicant-Type,DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range&apos;;</div></pre></td></tr></table></figure></p>
+<p>看上去没有问题, 而且headers允许携带的字段也很全面. 于是通过抓包分析, 发现请求头中有个叫<code>gToken</code>的自定义参数, 那么问题很明显了, 就是因为请求头中携带了nginx中未允许的字段, 所以导致该请求不授信. 于是在<code>Access-Control-Allow-Headers</code>中添加<code>gtoken</code>:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">add_header Access-Control-Allow-Headers &apos;Applicant-Type,DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,gToken&apos;;</div></pre></td></tr></table></figure></p>
+<p>再次请求则访问成功.</p>
+
+      
     </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/nginx/" rel="tag"># nginx</a>
+          
+            <a href="/tags/cros/" rel="tag"># cros</a>
+          
+            <a href="/tags/问题记录/" rel="tag"># 问题记录</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/07/24/video标签事件指北/" rel="next" title="video标签事件指北">
+                <i class="fa fa-chevron-left"></i> video标签事件指北
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
   </div>
   
   
   
+  </article>
 
-  
 
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
 
 
           </div>
@@ -328,6 +444,13 @@
 
 
           
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
 
         </div>
         
@@ -348,8 +471,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -438,6 +570,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#问题场景"><span class="nav-number">1.</span> <span class="nav-text">问题场景</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#options请求"><span class="nav-number">2.</span> <span class="nav-text">options请求</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#服务端cros配置"><span class="nav-number">3.</span> <span class="nav-text">服务端cros配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#问题分析"><span class="nav-number">4.</span> <span class="nav-text">问题分析</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
@@ -584,6 +732,10 @@
   
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
 
   
 
